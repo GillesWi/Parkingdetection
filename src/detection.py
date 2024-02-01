@@ -11,7 +11,7 @@ class YoloDetection:
         self.reference = []
         self.park_positions = []
 
-    def detect_objects(self, img, debug):
+    def detect_objects(self, img):
         self.positions = []  # Reset positions list for each frame
         results = self.model(img, stream=True)
 
@@ -45,19 +45,13 @@ class YoloDetection:
                         # Save the position of car
                         if classnames[cls] == 'car' or classnames[cls] == 'truck' or classnames[cls] == 'motorbike':
                             self.positions.append(car_position)
-
-                            if debug:
-                                draw_rectangle(img, car_position, (175, 175, 175), 1)
-                            else:
-                                if debug:
-                                    draw_rectangle(img, car_position, (255, 255, 255), 1)
+                            draw_rectangle(img, car_position, (175, 175, 175), 1)
 
                         # Show position and class name
-                        if debug:
-                            label = f'{classnames[cls]}: {conf}'
-                            cv2.putText(img, label, (max(0, car_position[0]), max(0, car_position[1])),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                                        (255, 255, 255), 1)
+                        label = f'{classnames[cls]}: {conf}'
+                        cv2.putText(img, label, (max(0, car_position[0]), max(0, car_position[1])),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                                    (255, 255, 255), 1)
             else:
                 print("Nothing detected")
             return self.positions, self.reference, self.park_positions

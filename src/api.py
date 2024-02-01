@@ -10,12 +10,12 @@ def data(parking_spaces):
         if parkingspace.status == "occupied":
             counter += 1
 
-    data = {
+    apidata = {
         "total": len(parking_spaces),
         "occupied": counter
     }
 
-    response = requests.put(api_url, json=data)
+    response = requests.put(api_url, json=apidata)
     if response.status_code == 200:
         print(f"Successfully stored pinformation.")
     else:

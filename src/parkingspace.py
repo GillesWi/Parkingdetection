@@ -13,15 +13,9 @@ OCCUPIED_THRESHOLD = 4  # Time threshold to consider a space occupied (in second
 EMPTY_DELAY = 4  # Time to wait before transitioning to EMPTY after the car leaves (in seconds)
 
 
-def get_parking_spaces(parkingspace_file):
-    # Load YOLO text annotations into a list of tuples
-    with open(parkingspace_file, 'r') as f:
-        parkingspace_positions = [tuple(map(float, line.split()[1:])) for line in f.readlines()]
-    return parkingspace_positions
-
-
 class ParkingSpace:
     def __init__(self, number, coordinates, start_timer, get_elapsed_time):
+
         # Initialization
         self.number = number
         self.coordinates = coordinates
@@ -43,12 +37,6 @@ class ParkingSpace:
         self.get_elapsed_time = get_elapsed_time
         self.elapsed_time = 0  # Initialize elapsed_time
 
-        # Configurable parameters
-        self.transition_delay_inside = TRANSITION_DELAY_INSIDE
-        self.transition_delay_outside = TRANSITION_DELAY_OUTSIDE
-        self.occupied_threshold = OCCUPIED_THRESHOLD
-        self.empty_delay = EMPTY_DELAY
-
         # Logger setup
         self.logger = setup_logger('ParkingActivity', '../logs/parking-space-activity.log')
 
@@ -64,19 +52,11 @@ class ParkingSpace:
         elif not car_found_inside and self.last_car_found_inside:
             self.handle_car_left()
 
-        # Check if a car is still inside (OCCUPIED state)
-        elif car_found_inside and self.elapsed_time < self.occupied_threshold:
-            self.status = OCCUPIED
-
-        # Check if the parking space is empty for a certain duration
-        elif not car_found_inside and self.elapsed_time > self.empty_delay:
-            self.handle_empty()
-
         # Check for state transition
         self.check_transition()
 
     def handle_car_found_inside(self):
-        self.status = TRANSITION
+        self.status = OCCUPIED
         self.last_change_time = self.start_timer()
         self.last_car_found_inside = True
 
@@ -86,23 +66,16 @@ class ParkingSpace:
         # Start the timer when the car leaves
         self.last_car_left_time = self.start_timer()
 
-        if self.elapsed_time > TRANSITION_DELAY_OUTSIDE:
-            self.status = TRANSITION
+        if self.elapsed_time > 0:  # Removed the delay condition
+            self.status = EMPTY
             self.last_change_time = self.start_timer()
             self.last_car_found_inside = False
-
-    def handle_empty(self):
-        # Only transition to EMPTY after a specific time of the car leaving
-        if self.get_elapsed_time(self.last_car_left_time) > EMPTY_DELAY:
-            self.status = EMPTY
 
     def check_transition(self):
         # Check for state transition and log if needed
         current_time = self.start_timer()
-        elapsed_since_last_log = self.get_elapsed_time(self.last_change_time)
 
-        if (self.last_status != self.status) and (self.status != TRANSITION) and (
-                elapsed_since_last_log > 1):
+        if self.last_status != self.status:
             # Log the status transition
             self.logger.info(f"Parking space {self.number} changed from {self.last_status} to {self.status}")
 
@@ -112,9 +85,7 @@ class ParkingSpace:
 
     def get_draw_color(self):
         # Define colors based on the status
-        if self.status == TRANSITION:
-            return 0, 165, 255  # Orange color
-        elif self.status == OCCUPIED:
+        if self.status == OCCUPIED:
             return 0, 0, 200  # Adjust the color for OCCUPIED state
         else:
             return 0, 200, 0
@@ -141,21 +112,13 @@ class ParkingSpace:
             y_max = int((parkingspaces[self.number - 1].adapted_coordinates[3]) - self.height)
 
             self.adapted_coordinates = [x_min, y_min, x_max, y_max]
-
-        # Apply smoothing using simple moving average
-        self.smoothed_coordinates = [
-            int((self.adapted_coordinates[0] + self.smoothed_coordinates[0]) / 2),
-            int((self.adapted_coordinates[1] + self.smoothed_coordinates[1]) / 2),
-            int((self.adapted_coordinates[2] + self.smoothed_coordinates[2]) / 2),
-            int((self.adapted_coordinates[3] + self.smoothed_coordinates[3]) / 2),
-        ]
-        return self.smoothed_coordinates
+        return self.adapted_coordinates
 
     def get_number(self):
         return self.number
 
 
-def check_parking_space(reference, park_position, parking_spaces, car_positions, status_logger, img):
+def check_parking_space(park_position, parking_spaces, car_positions, status_logger, img):
     parking_spaces_current_status = {}
 
     # Check every parking space for a parked car
