@@ -1,0 +1,12 @@
+
+path: /Users/gillesw/Documents/Learning/Project 4.0/2. Realisation phase/Vehicle detection system/Yolo parkingdetection/training/Parkingdetection/
+
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: supercharger
+  1: cabinet
+  2: car
+  3: parking
